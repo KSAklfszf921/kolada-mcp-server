@@ -319,6 +319,195 @@ async function startHTTPServer() {
     res.json({ received: true });
   });
 
+  // JSON-RPC endpoint (for direct POST requests without SSE)
+  app.post('/rpc', authenticate, async (req, res) => {
+    try {
+      const server = createMCPServer();
+      const request = req.body;
+
+      // Handle different MCP request types
+      let response;
+
+      if (request.method === 'initialize') {
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            protocolVersion: '2024-11-05',
+            capabilities: {
+              tools: {},
+              resources: {},
+              prompts: {},
+            },
+            serverInfo: {
+              name: 'kolada-mcp-server',
+              version: '2.0.0',
+            },
+          },
+        };
+      } else if (request.method === 'tools/list') {
+        const allTools = { ...kpiTools, ...municipalityTools, ...ouTools, ...dataTools };
+        const tools = Object.entries(allTools).map(([name, tool]) => ({
+          name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        }));
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            tools,
+          },
+        };
+      } else if (request.method === 'tools/call') {
+        const { name, arguments: args } = request.params;
+        const allTools: Record<string, any> = { ...kpiTools, ...municipalityTools, ...ouTools, ...dataTools };
+        const tool = allTools[name];
+
+        if (!tool) {
+          throw new Error(`Tool not found: ${name}`);
+        }
+
+        const result = await tool.handler(args);
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result,
+        };
+      } else if (request.method === 'prompts/list') {
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            prompts: Object.values(analysisPrompts).map((prompt) => ({
+              name: prompt.name,
+              description: prompt.description,
+              arguments: prompt.arguments,
+            })),
+          },
+        };
+      } else if (request.method === 'prompts/get') {
+        const { name, arguments: args } = request.params;
+        const prompt = analysisPrompts[name];
+
+        if (!prompt) {
+          throw new Error(`Prompt not found: ${name}`);
+        }
+
+        const text = generatePromptText(prompt, args || {});
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            description: prompt.description,
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text,
+                },
+              },
+            ],
+          },
+        };
+      } else if (request.method === 'resources/list') {
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: {
+            resources: [
+              {
+                uri: 'kolada://municipalities',
+                name: 'Swedish Municipalities',
+                description: 'Complete list of Swedish municipalities and county councils',
+                mimeType: 'application/json',
+              },
+              {
+                uri: 'kolada://kpi-catalog',
+                name: 'KPI Catalog',
+                description: 'Complete catalog of available KPIs with metadata',
+                mimeType: 'application/json',
+              },
+              {
+                uri: 'kolada://api-info',
+                name: 'API Information',
+                description: 'API information, endpoints, rate limits, and usage guidelines',
+                mimeType: 'application/json',
+              },
+            ],
+          },
+        };
+      } else if (request.method === 'resources/read') {
+        const { uri } = request.params;
+        let contents;
+
+        if (uri === 'kolada://municipalities') {
+          const municipalities = await dataCache.getOrFetch(
+            'municipalities',
+            () => koladaClient.fetchAllData<Municipality>('/municipality'),
+            86400000
+          );
+          contents = [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify({ count: municipalities.length, municipalities }, null, 2),
+            },
+          ];
+        } else if (uri === 'kolada://kpi-catalog') {
+          const kpis = await dataCache.getOrFetch('kpis', () => koladaClient.fetchAllData<KPI>('/kpi'), 86400000);
+          contents = [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify({ count: kpis.length, kpis }, null, 2),
+            },
+          ];
+        } else if (uri === 'kolada://api-info') {
+          contents = [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(
+                {
+                  base_url: 'https://api.kolada.se/v3',
+                  documentation: 'https://api.kolada.se/v3/docs',
+                  rate_limit: '5 requests per second',
+                  cache_ttl: '24 hours for metadata',
+                },
+                null,
+                2
+              ),
+            },
+          ];
+        } else {
+          throw new Error(`Resource not found: ${uri}`);
+        }
+
+        response = {
+          jsonrpc: '2.0',
+          id: request.id,
+          result: { contents },
+        };
+      } else {
+        throw new Error(`Unknown method: ${request.method}`);
+      }
+
+      res.json(response);
+    } catch (error: any) {
+      console.error('Error handling RPC request:', error);
+      res.status(200).json({
+        jsonrpc: '2.0',
+        id: req.body.id,
+        error: {
+          code: -32603,
+          message: error.message || 'Internal error',
+        },
+      });
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════════╗
