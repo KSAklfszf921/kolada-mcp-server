@@ -18,6 +18,11 @@
   - Full KPI catalog
   - API information and documentation
 
+- **Dual Transport Support**
+  - **stdio** - For Claude Desktop and CLI tools
+  - **HTTP/SSE** - For Lovable and web-based clients
+  - Token authentication for HTTP mode
+
 - **Rate Limiting & Retry Logic**
   - Automatic rate limiting (5 req/s)
   - Exponential backoff on failures
@@ -73,6 +78,46 @@ Or if installed via npm:
 ```
 
 Restart Claude Desktop to load the server.
+
+## 🌐 Usage with Lovable (HTTP Mode)
+
+The server supports HTTP/SSE transport with token authentication for use with [Lovable](https://lovable.dev) and other HTTP-based MCP clients.
+
+### Quick Start
+
+1. **Set up environment variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env and set MCP_AUTH_TOKEN to a secure token
+   ```
+
+2. **Generate a secure token:**
+   ```bash
+   openssl rand -base64 32
+   ```
+
+3. **Start the HTTP server:**
+   ```bash
+   npm run dev:http  # Development
+   npm run start:http # Production (after npm run build)
+   ```
+
+4. **Configure in Lovable:**
+   ```json
+   {
+     "mcpServers": {
+       "kolada": {
+         "url": "http://localhost:3000/sse",
+         "transport": "sse",
+         "headers": {
+           "Authorization": "Bearer your-token-here"
+         }
+       }
+     }
+   }
+   ```
+
+See [LOVABLE.md](./LOVABLE.md) for complete deployment guide including Render, Railway, and Docker.
 
 ## 🛠️ Available Tools
 
