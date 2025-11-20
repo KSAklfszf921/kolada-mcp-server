@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/kolada-mcp-server.svg)](https://www.npmjs.com/package/kolada-mcp-server)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/KSAklfszf921/kolada-mcp-server)
 
 ## 🌟 Features
 
@@ -118,6 +119,33 @@ The server supports HTTP/SSE transport with token authentication for use with [L
    ```
 
 See [LOVABLE.md](./LOVABLE.md) for complete deployment guide including Render, Railway, and Docker.
+
+## 🚀 Free Deployment Options
+
+### One-Click Deploy to Render (Recommended)
+
+Click the button to deploy to Render's free tier:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/KSAklfszf921/kolada-mcp-server)
+
+After deployment:
+1. Set `MCP_AUTH_TOKEN` in Render Dashboard
+2. Get your service URL: `https://your-service.onrender.com/sse`
+3. Update Lovable config with your URL and token
+
+**Free tier includes:**
+- ✅ 750 hours/month (always-on)
+- ✅ Automatic HTTPS
+- ✅ Auto-deploy from GitHub
+- ⚠️  Sleeps after 15 min inactivity (use UptimeRobot to keep awake)
+
+### Other Free Options
+
+- **Railway** - $5/month free credit (no sleep) - [Guide](./LOVABLE.md#railway)
+- **Fly.io** - 3 free VMs (no sleep) - [Guide](./LOVABLE.md#flyio)
+- **Cyclic** - 10k requests/month - [Guide](./LOVABLE.md#cyclic)
+
+See [FREE-HOSTING.md](./FREE-HOSTING.md) for detailed comparison and [DEPLOY-RENDER.md](./DEPLOY-RENDER.md) for step-by-step Render deployment.
 
 ## 🛠️ Available Tools
 

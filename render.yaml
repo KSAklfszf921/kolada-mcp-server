@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: kolada-mcp-server
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:http
+    envVars:
+      - key: MCP_MODE
+        value: http
+      - key: NODE_ENV
+        value: production
+      - key: MCP_AUTH_TOKEN
+        sync: false
+        # Sätt detta manuellt i Render Dashboard efter deploy
+        # Använd din token: Yry0+YTH3Y6XzmY89S7WOVayw2ksIte1hgedTYC1L9U=
